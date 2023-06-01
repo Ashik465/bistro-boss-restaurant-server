@@ -26,9 +26,48 @@ async function run() {
     await client.connect();
 
     const menuCollection = client.db("bistroDb").collection("menu");
+    const usersCollection = client.db("bistroDb").collection("users");
 
     const reviewCollection = client.db("bistroDb").collection("reviews");
     const cartCollection = client.db("bistroDb").collection("carts");
+
+
+  // update user make admin
+
+  app.patch("users/admin/:id", async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const updateDoc = {
+      $set: {
+      role: "admin",
+      },
+    };
+    const result = await usersCollection.updateOne(query, updateDoc);
+    res.send(result);
+  });
+
+
+
+
+    // get all user data
+
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
+    // insert user data
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const existingUser = await usersCollection.find(query).toArray();
+      if (existingUser) {
+        return res.send({ message: "user already exists" });
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
 
     // insert cart data
 
@@ -48,19 +87,14 @@ async function run() {
       res.send(result);
     });
 
-    // delete cart data by id 
+    // delete cart data by id
 
-    app.delete("/carts/:id", async (req, res) => {            
+    app.delete("/carts/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await cartCollection.deleteOne(query);
       res.send(result);
     });
-
-
-        
-
-
 
     // get all menu data
 
