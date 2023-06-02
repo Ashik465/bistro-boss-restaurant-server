@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require('jsonwebtoken');
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -32,9 +33,20 @@ async function run() {
     const cartCollection = client.db("bistroDb").collection("carts");
 
 
+
+// create jwt token
+
+app.post('/jwt', (req, res) => {
+  const user = req.body 
+  const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
+  res.send({token})
+})
+
+
+
   // update user make admin
 
-  app.patch("users/admin/:id", async (req, res) => {
+  app.patch("/users/admin/:id", async (req, res) => {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
     const updateDoc = {
@@ -61,10 +73,10 @@ async function run() {
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
-      const existingUser = await usersCollection.find(query).toArray();
+      const existingUser = await usersCollection.findOne(query);
       if (existingUser) {
         return res.send({ message: "user already exists" });
-      }
+      } 
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
