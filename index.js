@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require('jsonwebtoken');
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -9,7 +10,26 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors());
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+
+// verify jwt token
+
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization
+  if(!authorization) {
+  return   res.status(401).send({error:true ,message: "you are not authenticated"})
+  }
+  const token = authorization.split(' ')[1]
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if(err) {
+      return res.status(403).send({error:true ,message: "you are not authenticated"})
+    }
+    req.decoded = decoded
+    next()
+  })
+}
+
+
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vgwn8xr.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -92,8 +112,13 @@ app.post('/jwt', (req, res) => {
 
     // get cart data by email
 
-    app.get("/carts", async (req, res) => {
+    app.get("/carts", verifyJWT , async (req, res) => {
       const email = req.query.email;
+      const decodedEmail = req.decoded.email
+      // console.log(email, 'deco', decodedEmail)
+      if (email !== decodedEmail) {
+        return res.status(403).send({ error: true, message: "Forbidden user" });
+      }
       const query = { email: email };
       const result = await cartCollection.find(query).toArray();
       res.send(result);
